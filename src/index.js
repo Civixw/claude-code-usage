@@ -1,7 +1,9 @@
-const { getAccessToken } = require('./credentials.js');
-const { fetchUsage } = require('./api.js');
+// src/index.js
+const { fetchAllUsage, hashKey } = require('./providers/index.js');
 const { readCache, writeCache } = require('./cache.js');
 const { formatStatusLine } = require('./format.js');
+
+const TOTAL_TIMEOUT = 8000; // 8 seconds total
 
 async function run() {
   // Read stdin (Claude Code sends JSON context)
@@ -17,22 +19,28 @@ async function run() {
     // Ignore stdin parse errors
   }
 
-  // Try cache first
-  let usage = readCache();
+  // Fetch usage from all providers (with timeout)
+  let providerResults = [];
 
-  if (!usage) {
-    const token = getAccessToken();
-    if (token) {
-      try {
-        usage = await fetchUsage(token);
-        writeCache(usage);
-      } catch {
-        // API call failed, show fallback
+  try {
+    const fetchPromise = fetchAllUsage();
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => resolve([]), TOTAL_TIMEOUT);
+    });
+
+    providerResults = await Promise.race([fetchPromise, timeoutPromise]);
+
+    // Cache results per provider
+    for (const { id, result } of providerResults) {
+      if (result && !result.error) {
+        writeCache(id, 'default', result);
       }
     }
+  } catch {
+    // Fetch failed entirely
   }
 
-  process.stdout.write(formatStatusLine(usage, stdinData) + '\n');
+  process.stdout.write(formatStatusLine(providerResults, stdinData) + '\n');
 }
 
 module.exports = { run };
