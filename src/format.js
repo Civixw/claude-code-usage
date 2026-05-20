@@ -66,11 +66,32 @@ function formatProvider(name, result, showName = true) {
   }
 
   if (result.unit === '%') {
-    const pct = Math.round(result.used ?? result.tiers?.[0]?.utilization ?? 0);
-    const color = getUsageColor(pct);
-    const bar = buildProgressBar(pct);
-    const reset = formatResetTime(result.resetsAt || result.tiers?.[0]?.resetsAt);
-    return `${color}${prefix}${pct}%${bar}${reset}${RESET}`;
+    const tiers = result.tiers || [];
+    if (tiers.length === 0) {
+      // Single tier display (backward compatible)
+      const pct = Math.round(result.used ?? 0);
+      const color = getUsageColor(pct);
+      const bar = buildProgressBar(pct);
+      return `${color}${prefix}${pct}%${bar}${RESET}`;
+    }
+
+    // Multi-tier display
+    const parts = [];
+    for (const tier of tiers) {
+      const pct = Math.round(tier.utilization ?? 0);
+      const color = getUsageColor(pct);
+      const bar = buildProgressBar(pct);
+      const reset = formatResetTime(tier.resetsAt);
+
+      // Tier label: "5h" for five_hour, "周" for weekly_limit
+      let label = '';
+      if (tier.name === 'five_hour') label = '5h';
+      else if (tier.name === 'weekly_limit') label = '周';
+
+      parts.push(`${color}${pct}%${bar}${label ? ' ' + label : ''}${reset}${RESET}`);
+    }
+
+    return parts.join(' | ');
   }
 
   // Currency display (USD/CNY)
