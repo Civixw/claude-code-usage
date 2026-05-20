@@ -41,10 +41,25 @@ function formatResetTime(resetsAt) {
   try {
     const d = new Date(resetsAt);
     if (isNaN(d.getTime())) return '';
+
     const time = d.toLocaleTimeString(undefined, {
       hour: 'numeric',
       minute: '2-digit',
     });
+
+    const now = new Date();
+    const daysDiff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+
+    // If reset is more than 24 hours away, show date
+    if (daysDiff > 1 || daysDiff < -1) {
+      const date = d.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      });
+      return ` → Reset: ${date} ${time}`;
+    }
+
+    // Otherwise just show time
     return ` → Reset: ${time}`;
   } catch {
     return '';
