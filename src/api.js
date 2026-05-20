@@ -1,40 +1,13 @@
-const https = require('https');
+// src/api.js
+// Kept for backward compatibility. The actual implementation is in providers/anthropic.js.
+const anthropic = require('./providers/anthropic.js');
 
-function fetchUsage(accessToken) {
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      'https://api.anthropic.com/api/oauth/usage',
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'anthropic-beta': 'oauth-2025-04-20',
-          'User-Agent': 'claude-code-usage/1.0',
-        },
-        timeout: 5000,
-      },
-      (res) => {
-        let body = '';
-        res.on('data', (chunk) => (body += chunk));
-        res.on('end', () => {
-          if (res.statusCode !== 200) {
-            return reject(new Error(`HTTP ${res.statusCode}`));
-          }
-          try {
-            resolve(JSON.parse(body));
-          } catch {
-            reject(new Error('Invalid JSON'));
-          }
-        });
-      }
-    );
-    req.on('error', reject);
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('Timeout'));
-    });
-    req.end();
-  });
+async function fetchUsage(accessToken) {
+  // Legacy interface: called with an explicit access token
+  // Redirect to the provider's fetchUsage
+  const result = await anthropic.fetchUsage({});
+  // Return raw API data for backward compat
+  return result;
 }
 
 module.exports = { fetchUsage };
