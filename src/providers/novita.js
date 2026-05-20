@@ -24,7 +24,7 @@ module.exports = {
         total: available,
         remaining: available,
         unit: 'USD',
-        isValid: available > 0,
+        isValid: true,
       });
     } catch (err) {
       return errorResult(err.message);

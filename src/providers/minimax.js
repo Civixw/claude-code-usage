@@ -41,7 +41,7 @@ module.exports = {
         if (intervalTotal > 0) {
           tiers.push({
             name: 'five_hour',
-            utilization: ((intervalTotal - intervalUsed) / intervalTotal) * 100,
+            utilization: (intervalUsed / intervalTotal) * 100,
             resetsAt: msToISO(endTime),
           });
         }
@@ -54,7 +54,7 @@ module.exports = {
         if (weeklyTotal > 0) {
           tiers.push({
             name: 'weekly_limit',
-            utilization: ((weeklyTotal - weeklyUsed) / weeklyTotal) * 100,
+            utilization: (weeklyUsed / weeklyTotal) * 100,
             resetsAt: msToISO(weeklyEnd),
           });
         }

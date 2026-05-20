@@ -1,7 +1,7 @@
 {
   "name": "@nathanmdj/claude-code-usage",
   "version": "1.0.3",
-  "description": "Cross-platform Claude Code status line with usage tracking via Anthropic OAuth API",
+  "description": "Cross-platform Claude Code status line with multi-provider usage tracking",
   "bin": {
     "claude-code-usage": "./bin/claude-code-usage.js"
   },

@@ -21,7 +21,7 @@ function httpGet(url, headers = {}, timeout = DEFAULT_TIMEOUT) {
       res.on('data', (chunk) => (body += chunk));
       res.on('end', () => {
         if (res.statusCode < 200 || res.statusCode >= 300) {
-          return reject(new Error(`HTTP ${res.statusCode}: ${body.slice(0, 200)}`));
+          return reject(new Error(`HTTP ${res.statusCode}`));
         }
         try {
           resolve(JSON.parse(body));

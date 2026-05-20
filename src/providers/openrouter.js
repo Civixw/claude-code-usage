@@ -27,7 +27,7 @@ module.exports = {
         used: totalUsage,
         remaining,
         unit: 'USD',
-        isValid: remaining > 0,
+        isValid: true,
       });
     } catch (err) {
       return errorResult(err.message);
