@@ -1,4 +1,6 @@
-// ANSI 256-color gradient: dark green → deep red
+// src/format.js
+
+// ANSI 256-color gradient: dark green -> deep red
 const LEVEL_COLORS = [
   '\x1b[38;5;22m',  // 0-10%  dark green
   '\x1b[38;5;28m',  // 11-20% soft green
@@ -16,8 +18,9 @@ const BLUE = '\x1b[0;34m';
 const GREEN = '\x1b[0;32m';
 const GRAY = '\x1b[0;90m';
 const YELLOW = '\x1b[0;33m';
+const RED = '\x1b[0;31m';
 const RESET = '\x1b[0m';
-const SEP = `${GRAY} \u2502 ${RESET}`;
+const SEP = `${GRAY} │ ${RESET}`;
 
 function getUsageColor(pct) {
   const idx = Math.min(Math.floor(pct / 10), 9);
@@ -30,7 +33,7 @@ function buildProgressBar(pct) {
   else if (pct >= 100) filled = 10;
   else filled = Math.round((pct * 10) / 100);
   filled = Math.max(0, Math.min(10, filled));
-  return ' ' + '\u2593'.repeat(filled) + '\u2591'.repeat(10 - filled);
+  return ' ' + '▓'.repeat(filled) + '░'.repeat(10 - filled);
 }
 
 function formatResetTime(resetsAt) {
@@ -38,18 +41,53 @@ function formatResetTime(resetsAt) {
   try {
     const d = new Date(resetsAt);
     if (isNaN(d.getTime())) return '';
-    // Use locale-aware time formatting
     const time = d.toLocaleTimeString(undefined, {
       hour: 'numeric',
       minute: '2-digit',
     });
-    return ` \u2192 Reset: ${time}`;
+    return ` → Reset: ${time}`;
   } catch {
     return '';
   }
 }
 
-function formatStatusLine(usage, stdinData) {
+/**
+ * Format a single provider's usage data.
+ * @param {string} name - Provider display name
+ * @param {Object} result - Normalized usage result
+ * @param {boolean} showName - Whether to prefix with provider name
+ * @returns {string}
+ */
+function formatProvider(name, result, showName = true) {
+  const prefix = showName ? `${name}: ` : '';
+
+  if (!result || result.error) {
+    return `${YELLOW}${prefix}~${RESET}`;
+  }
+
+  if (result.unit === '%') {
+    const pct = Math.round(result.used ?? result.tiers?.[0]?.utilization ?? 0);
+    const color = getUsageColor(pct);
+    const bar = buildProgressBar(pct);
+    const reset = formatResetTime(result.resetsAt || result.tiers?.[0]?.resetsAt);
+    return `${color}${prefix}${pct}%${bar}${reset}${RESET}`;
+  }
+
+  // Currency display (USD/CNY)
+  const amount = result.remaining ?? 0;
+  const symbol = result.unit === 'CNY' ? '¥' : '$';
+  const formatted = amount.toFixed(2);
+  const color = amount > 0 ? GREEN : RED;
+  return `${color}${prefix}${symbol}${formatted}${RESET}`;
+}
+
+/**
+ * Format the full statusline with context info and multiple providers.
+ * @param {Array<{id, name, result}>} providerResults
+ * @param {Object} stdinData - Context from Claude Code stdin
+ * @returns {string}
+ */
+function formatStatusLine(providerResults, stdinData) {
   const parts = [];
 
   // Directory name
@@ -59,8 +97,7 @@ function formatStatusLine(usage, stdinData) {
     parts.push(`${BLUE}${dirName}${RESET}`);
   }
 
-  // Git branch (from stdin if available, otherwise skip — keep it fast)
-  // The statusline stdin doesn't include git branch, so we read it ourselves
+  // Git branch
   try {
     const { execSync } = require('child_process');
     const branch = execSync('git branch --show-current 2>/dev/null', {
@@ -69,24 +106,26 @@ function formatStatusLine(usage, stdinData) {
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
     if (branch) {
-      parts.push(`${GREEN}\u23C7 ${branch}${RESET}`);
+      parts.push(`${GREEN}⏇ ${branch}${RESET}`);
     }
   } catch {
     // Not a git repo
   }
 
-  // Usage
-  if (usage) {
-    const pct = Math.round(usage.five_hour?.utilization ?? 0);
-    const color = getUsageColor(pct);
-    const bar = buildProgressBar(pct);
-    const reset = formatResetTime(usage.five_hour?.resets_at);
-    parts.push(`${color}Usage: ${pct}%${bar}${reset}${RESET}`);
-  } else {
+  // Provider usage
+  if (providerResults.length === 0) {
     parts.push(`${YELLOW}Usage: ~${RESET}`);
+  } else if (providerResults.length === 1) {
+    // Single provider: no name prefix (backward compatible)
+    parts.push(formatProvider('Usage', providerResults[0].result, false));
+  } else {
+    // Multiple providers: show name prefix
+    for (const { name, result } of providerResults) {
+      parts.push(formatProvider(name, result, true));
+    }
   }
 
   return parts.join(SEP);
 }
 
-module.exports = { formatStatusLine };
+module.exports = { formatStatusLine, formatProvider };
