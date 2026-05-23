@@ -45,11 +45,25 @@ async function fetchZhipuUsage(token) {
     .filter((l) => l.type?.toUpperCase() === 'TOKENS_LIMIT')
     .sort((a, b) => (a.nextResetTime ?? Infinity) - (b.nextResetTime ?? Infinity));
 
-  const tiers = tokenLimits.slice(0, 2).map((l, idx) => ({
-    name: idx === 0 ? 'five_hour' : 'weekly_limit',
-    utilization: l.percentage ?? 0,
-    resetsAt: msToISO(l.nextResetTime),
-  }));
+  let tiers = tokenLimits.slice(0, 2).map((l) => {
+    // Zhipu API uses 'number' field to distinguish limit types:
+    // number: 1 = weekly limit (周限额)
+    // number: 5 = 5-hour limit (5小时额度)
+    const name = l.number === 1 ? 'weekly_limit' : 'five_hour';
+
+    return {
+      name,
+      utilization: l.percentage ?? 0,
+      resetsAt: msToISO(l.nextResetTime),
+    };
+  });
+
+  // Sort: five_hour first, then weekly_limit
+  tiers = tiers.sort((a, b) => {
+    if (a.name === 'five_hour') return -1;
+    if (a.name === 'weekly_limit') return 1;
+    return 0;
+  });
 
   const primary = tiers[0];
   return {
