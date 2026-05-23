@@ -1,24 +1,24 @@
 // src/format.js
 
-// ANSI 256-color gradient: dark green -> deep red
+// ANSI 256-color gradient: bright green -> bright red
 const LEVEL_COLORS = [
-  '\x1b[38;5;22m',  // 0-10%  dark green
-  '\x1b[38;5;28m',  // 11-20% soft green
-  '\x1b[38;5;34m',  // 21-30% medium green
-  '\x1b[38;5;100m', // 31-40% green-yellowish
-  '\x1b[38;5;142m', // 41-50% olive
-  '\x1b[38;5;178m', // 51-60% muted yellow
-  '\x1b[38;5;172m', // 61-70% yellow-orange
-  '\x1b[38;5;166m', // 71-80% darker orange
-  '\x1b[38;5;160m', // 81-90% dark red
-  '\x1b[38;5;124m', // 91-100% deep red
+  '\x1b[38;5;46m',  // 0-10%  bright green
+  '\x1b[38;5;82m',  // 11-20% light green
+  '\x1b[38;5;118m', // 21-30% medium green
+  '\x1b[38;5;154m', // 31-40% green-yellow
+  '\x1b[38;5;190m', // 41-50% yellow-green
+  '\x1b[38;5;226m', // 51-60% bright yellow
+  '\x1b[38;5;220m', // 61-70% yellow-orange
+  '\x1b[38;5;214m', // 71-80% orange
+  '\x1b[38;5;208m', // 81-90% bright red-orange
+  '\x1b[38;5;196m', // 91-100% bright red
 ];
 
-const BLUE = '\x1b[0;34m';
-const GREEN = '\x1b[0;32m';
-const GRAY = '\x1b[0;90m';
-const YELLOW = '\x1b[0;33m';
-const RED = '\x1b[0;31m';
+const BLUE = '\x1b[38;5;39m';
+const GREEN = '\x1b[38;5;46m';
+const GRAY = '\x1b[38;5;245m';
+const YELLOW = '\x1b[38;5;226m';
+const RED = '\x1b[38;5;196m';
 const RESET = '\x1b[0m';
 const SEP = `${GRAY} │ ${RESET}`;
 
@@ -117,7 +117,7 @@ function formatStatusLine(providerResults, stdinData) {
   const cwd = stdinData?.cwd || stdinData?.workspace?.current_dir || '';
   if (cwd) {
     const dirName = cwd.split('/').pop() || cwd.split('\\').pop() || cwd;
-    parts.push(`${BLUE}${dirName}${RESET}`);
+    parts.push(`${YELLOW}${dirName}${RESET}`);
   }
 
   // Git branch
@@ -129,7 +129,7 @@ function formatStatusLine(providerResults, stdinData) {
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
     if (branch) {
-      parts.push(`${GREEN}⏇ ${branch}${RESET}`);
+      parts.push(`${GREEN}⎇ ${branch}${RESET}`);
     }
   } catch {
     // Not a git repo

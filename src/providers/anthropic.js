@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { getAccessToken } = require('../credentials.js');
-const { httpGet, createResult, errorResult, msToISO } = require('./base.js');
+const { httpGet, createResult, errorResult, msToISO, parseNum } = require('./base.js');
 
 function readSettings() {
   try {
@@ -18,6 +18,12 @@ function readSettings() {
 function isZhipu(baseUrl) {
   if (!baseUrl) return false;
   return baseUrl.includes('bigmodel.cn') || baseUrl.includes('api.z.ai');
+}
+
+// Detect if using DeepSeek endpoint
+function isDeepSeek(baseUrl) {
+  if (!baseUrl) return false;
+  return baseUrl.includes('deepseek.com');
 }
 
 // Fetch usage from Zhipu's native API
@@ -52,6 +58,27 @@ async function fetchZhipuUsage(token) {
     planName: data.data?.level ?? null,
     tiers,
   };
+}
+
+// Fetch usage from DeepSeek balance API
+async function fetchDeepSeekUsage(token) {
+  const data = await httpGet('https://api.deepseek.com/user/balance', {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+  });
+
+  const isAvailable = data.is_available !== false;
+  const infos = data.balance_infos ?? [];
+
+  if (infos.length === 0) {
+    return { remaining: 0, unit: 'CNY', isValid: isAvailable };
+  }
+
+  const info = infos[0];
+  const total = parseNum(info, 'total_balance') ?? 0;
+  const currency = info.currency || 'CNY';
+
+  return { remaining: total, unit: currency, isValid: isAvailable };
 }
 
 // Fetch usage from Anthropic OAuth API
@@ -106,6 +133,14 @@ module.exports = {
           planName: zhipuData.planName,
           isValid: true,
           tiers: zhipuData.tiers,
+        });
+      } else if (isDeepSeek(baseUrl)) {
+        // Use DeepSeek's native balance API
+        const dsData = await fetchDeepSeekUsage(token);
+        result = createResult({
+          remaining: dsData.remaining,
+          unit: dsData.unit,
+          isValid: dsData.isValid,
         });
       } else {
         // Use Anthropic OAuth API
